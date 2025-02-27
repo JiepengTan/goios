@@ -68,3 +68,11 @@ fastlane/test_output
 
 # Our build output
 /output/
+
+# Artifacts
+GoIOS.xcframework/
+*.a
+output/
+
+# Logs
+*.log
