@@ -1,3 +1,4 @@
+//go:build darwin && (arm64 || amd64) && cgo && ios
 // +build darwin
 // +build arm64 amd64
 // +build cgo

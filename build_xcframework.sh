@@ -142,10 +142,10 @@ EOF
 
 # Add C bridge files
 echo "🌉 Adding C bridge files..."
-# Compile darwin_stubs.c first
-gcc -isysroot $SIMULATOR_SDK_PATH -mios-simulator-version-min=12.0 -arch x86_64 -c "$GO_SRC_DIR/darwin_stubs.c" -o "$BUILD_DIR/darwin_stubs_x86_64.o"
-gcc -isysroot $SIMULATOR_SDK_PATH -mios-simulator-version-min=12.0 -arch arm64 -c "$GO_SRC_DIR/darwin_stubs.c" -o "$BUILD_DIR/darwin_stubs_arm64_sim.o"
-gcc -isysroot $DEVICE_SDK_PATH -mios-version-min=12.0 -arch arm64 -c "$GO_SRC_DIR/darwin_stubs.c" -o "$BUILD_DIR/darwin_stubs_arm64.o"
+# Compile ios_adapter_complete.c first
+gcc -isysroot $SIMULATOR_SDK_PATH -mios-simulator-version-min=12.0 -arch x86_64 -c "$GO_SRC_DIR/ios_adapter_complete.c" -o "$BUILD_DIR/ios_adapter_x86_64.o"
+gcc -isysroot $SIMULATOR_SDK_PATH -mios-simulator-version-min=12.0 -arch arm64 -c "$GO_SRC_DIR/ios_adapter_complete.c" -o "$BUILD_DIR/ios_adapter_arm64_sim.o"
+gcc -isysroot $DEVICE_SDK_PATH -mios-version-min=12.0 -arch arm64 -c "$GO_SRC_DIR/ios_adapter_complete.c" -o "$BUILD_DIR/ios_adapter_arm64.o"
 
 # Then compile goios_bridge.c
 gcc -isysroot $SIMULATOR_SDK_PATH -mios-simulator-version-min=12.0 -arch x86_64 -c "$GO_SRC_DIR/goios_bridge.c" -o "$BUILD_DIR/goios_bridge_x86_64.o"
@@ -157,14 +157,14 @@ echo "🔗 Linking libraries for x86_64 simulator..."
 libtool -static -arch_only x86_64 -o "$SIMULATOR_DIR/$FRAMEWORK_NAME.framework/GoIOS-x86_64" \
   "$SIMULATOR_DIR/libgoios-x86_64.a" \
   "$BUILD_DIR/goios_bridge_x86_64.o" \
-  "$BUILD_DIR/darwin_stubs_x86_64.o"
+  "$BUILD_DIR/ios_adapter_x86_64.o"
 
 # Link libraries for arm64 simulator
 echo "🔗 Linking libraries for arm64 simulator..."
 libtool -static -arch_only arm64 -o "$SIMULATOR_DIR/$FRAMEWORK_NAME.framework/GoIOS-arm64" \
   "$SIMULATOR_DIR/libgoios-arm64-sim.a" \
   "$BUILD_DIR/goios_bridge_arm64_sim.o" \
-  "$BUILD_DIR/darwin_stubs_arm64_sim.o"
+  "$BUILD_DIR/ios_adapter_arm64_sim.o"
 
 # Create fat binary for simulator
 echo "🔗 Creating fat binary for simulator..."
@@ -177,7 +177,7 @@ echo "🔗 Linking libraries for arm64 device..."
 libtool -static -arch_only arm64 -o "$DEVICE_DIR/$FRAMEWORK_NAME.framework/$FRAMEWORK_NAME" \
   "$DEVICE_DIR/libgoios-arm64.a" \
   "$BUILD_DIR/goios_bridge_arm64.o" \
-  "$BUILD_DIR/darwin_stubs_arm64.o"
+  "$BUILD_DIR/ios_adapter_arm64.o"
 
 # Create XCFramework
 echo "🎁 Creating XCFramework..."

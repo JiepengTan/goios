@@ -1,100 +1,112 @@
 # Go to iOS Integration Demo (.xcframework)
 
-This demo shows how to compile Go code into an .xcframework for integration with iOS applications.
+这个演示项目展示了如何将Go代码编译成.xcframework格式，以便与iOS应用程序集成。
 
-## Project Structure
+## 项目结构
 
 ```
 goios/
-├── go/                      # Go source code
-│   ├── goios.go             # Main Go functions
-│   ├── goios_export.go      # Go functions exported to C
-│   ├── goios_bridge.c       # C bridge implementation
-│   ├── goios_bridge.h       # C header file
-│   └── go.mod               # Go module file
-├── iosapp/                  # iOS demo application
-│   ├── GoIOSDemo/           # Demo app source files
-│   └── GoIOSDemo.xcodeproj  # Xcode project
-├── build_xcframework.sh     # Script to build .xcframework
-├── test_go_xcframework.sh   # Script to test and build
-└── README.md                # This file
+├── go/                          # Go源代码
+│   ├── main.go                  # 主Go函数
+│   ├── ios_adapter.go           # iOS适配器Go代码
+│   ├── ios_adapter_complete.c   # iOS适配器C实现
+│   ├── ios_adapter_complete.h   # iOS适配器C头文件
+│   ├── goios_bridge.c           # C桥接实现
+│   ├── goios_bridge.h           # C头文件
+│   └── go.mod                   # Go模块文件
+├── iosapp/                      # iOS演示应用程序
+│   ├── GoIOSDemo/               # 演示应用源文件
+│   └── GoIOSDemo.xcodeproj      # Xcode项目
+├── build_xcframework.sh         # 构建.xcframework的脚本
+└── README.md                    # 本文档
 ```
 
-## Prerequisites
+## 前提条件
 
-- macOS (required for iOS development)
-- Xcode (14.0 or later recommended)
-- Go (1.17 or later)
-- Basic knowledge of Go and iOS development
+- macOS（iOS开发必需）
+- Xcode（建议14.0或更高版本）
+- Go（1.17或更高版本）
+- 基本的Go和iOS开发知识
 
-## How It Works
+## 工作原理
 
-1. **Go Code**: The Go code in the `go/` directory provides simple functions that will be exposed to iOS.
-2. **C Bridge**: We use a C bridge to connect Go and iOS, as Go can be compiled to C-compatible libraries.
-3. **XCFramework**: The `.xcframework` format allows for distributing binary libraries that work across different architectures (simulator and device).
+1. **Go代码**：`go/`目录中的Go代码提供了将暴露给iOS的简单函数。
+2. **C桥接**：我们使用C桥接来连接Go和iOS，因为Go可以编译成C兼容的库。
+3. **XCFramework**：`.xcframework`格式允许分发能在不同架构（模拟器和设备）上运行的二进制库。
+4. **iOS适配器**：特殊的适配代码解决了Go在iOS上运行的特殊问题（信号处理、线程限制等）。
 
-## Step-by-Step Process
+## 步骤详解
 
-### 1. Writing Go Code
+### 1. 编写Go代码
 
-First, we create Go functions that we want to expose to iOS. We export them using special comment annotations (`//export`).
+首先，我们创建想要暴露给iOS的Go函数。我们使用特殊的注释标记（`//export`）导出它们。
 
-### 2. Creating C Bridge
+### 2. 创建C桥接
 
-We create C wrapper functions in `goios_bridge.c` and a header file `goios_bridge.h` that provide the interface iOS code will use.
+我们在`goios_bridge.c`中创建C包装函数，并在`goios_bridge.h`中提供iOS代码将使用的接口。
 
-### 3. Building the XCFramework
+### 3. 实现iOS适配
 
-The `build_xcframework.sh` script performs the following steps:
-- Compiles Go code to C archives for different architectures (iOS device arm64, simulator x86_64 and arm64)
-- Creates "fat" libraries by combining architectures
-- Packages the libraries into `.framework` bundles
-- Combines the frameworks into a single `.xcframework`
+使用专用的适配器文件解决Go在iOS上运行时的特殊问题：
+- `ios_adapter.go`：处理Go运行时配置和信号
+- `ios_adapter_complete.h/c`：提供必要的C函数实现
 
-### 4. Using in iOS
+### 4. 构建XCFramework
 
-The iOS demo app shows how to:
-- Link against the `.xcframework`
-- Use a bridging header to expose C functions to Swift
-- Create a Swift wrapper class to make calls to the Go functions
+`build_xcframework.sh`脚本执行以下步骤：
+- 为不同架构（iOS设备arm64，模拟器x86_64和arm64）将Go代码编译为C归档
+- 通过合并架构创建"fat"库
+- 将库打包成`.framework`包
+- 将框架合并为单个`.xcframework`
 
-## Building and Running
+### 5. 在iOS中使用
 
-1. Build the .xcframework:
+iOS演示应用展示了如何：
+- 链接到`.xcframework`
+- 使用桥接头暴露C函数给Swift
+- 创建Swift包装类来调用Go函数
+
+## 构建和运行
+
+1. 构建.xcframework：
 ```bash
 chmod +x build_xcframework.sh
 ./build_xcframework.sh
 ```
 
-2. Test and build (optional):
-```bash
-chmod +x test_go_xcframework.sh
-./test_go_xcframework.sh
-```
-
-3. Open the Xcode project:
+2. 打开Xcode项目：
 ```bash
 open iosapp/GoIOSDemo.xcodeproj
 ```
 
-4. Build and run the iOS app in Xcode.
+3. 在Xcode中构建和运行iOS应用。
 
-## Demo App Features
+## 演示应用功能
 
-The demo iOS app demonstrates:
-- Addition of two numbers (using Go's `Simple` function)
-- String handling with "Say Hello" (using Go's `Hello` function)
-- Factorial calculation (using Go's `CalculateFactorial` function)
+演示iOS应用展示：
+- 两个数字的加法（使用Go的`Simple`函数）
+- 使用"Say Hello"进行字符串处理（使用Go的`Hello`函数）
+- 阶乘计算（使用Go的`CalculateFactorial`函数）
 
-## Troubleshooting
+## 适配器说明
 
-- **Framework not found**: Make sure you've run `build_xcframework.sh` before opening the Xcode project.
-- **Build errors**: Ensure you have the correct versions of Xcode and Go installed.
-- **Code signing issues**: You may need to adjust the signing settings in the Xcode project.
+我们提供了三个文件，专门解决Go代码在iOS上运行的问题：
 
-## Further Improvements
+- `ios_adapter.go`：处理Go侧的信号和运行时配置
+- `ios_adapter_complete.h`：声明C函数接口
+- `ios_adapter_complete.c`：实现信号处理和iOS初始化功能
 
-- Add more complex Go functions to demonstrate advanced use cases
-- Add proper error handling in the C bridge
-- Add automated tests for the iOS app
-- Create a module system for packaging multiple Go libraries
+更多详细信息，请参阅`README-iOS-Adapter.md`。
+
+## 故障排除
+
+- **未找到框架**：确保在打开Xcode项目前运行了`build_xcframework.sh`。
+- **构建错误**：确保您安装了正确版本的Xcode和Go。
+- **代码签名问题**：您可能需要调整Xcode项目中的签名设置。
+
+## 进一步改进
+
+- 添加更复杂的Go函数以演示高级用例
+- 在C桥接中添加适当的错误处理
+- 为iOS应用添加自动化测试
+- 创建用于打包多个Go库的模块系统

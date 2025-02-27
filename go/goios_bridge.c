@@ -1,12 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "goios_bridge.h"
-#include "ios_init.h"
+#include "ios_adapter_complete.h"
 
 // iOS app initialization - runs when the library is loaded
 __attribute__((constructor)) void initialize_ios_bridge(void) {
     // Configure iOS app before Go runtime starts
-    configureiOSApp();
+    initializeIOSEnvironment();
 }
 
 // These functions are implemented in Go and exported to C
