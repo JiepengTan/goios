@@ -13,6 +13,7 @@ __attribute__((constructor)) void initialize_ios_bridge(void) {
 extern int Simple_GoIOS(int a, int b);
 extern char* Hello_GoIOS(const char* name);
 extern int CalculateFactorial_GoIOS(int n);
+extern int TestGoroutines_GoIOS(int count, int workload);
 
 // C wrapper for the Simple Go function
 int Simple(int a, int b) {
@@ -27,4 +28,9 @@ char* Hello(const char* name) {
 // C wrapper for the CalculateFactorial Go function
 int CalculateFactorial(int n) {
     return CalculateFactorial_GoIOS(n);
+}
+
+// C wrapper for the TestGoroutines Go function
+int TestGoroutines(int count, int workload) {
+    return TestGoroutines_GoIOS(count, workload);
 }

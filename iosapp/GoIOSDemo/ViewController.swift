@@ -9,6 +9,7 @@ class ViewController: UIViewController {
     private let addButton = UIButton(type: .system)
     private let helloButton = UIButton(type: .system)
     private let factorialButton = UIButton(type: .system)
+    private let goroutinesButton = UIButton(type: .system)
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -51,6 +52,9 @@ class ViewController: UIViewController {
         factorialButton.setTitle("Calculate Factorial", for: .normal)
         factorialButton.addTarget(self, action: #selector(factorialButtonTapped), for: .touchUpInside)
         
+        goroutinesButton.setTitle("Test Goroutines", for: .normal)
+        goroutinesButton.addTarget(self, action: #selector(goroutinesButtonTapped), for: .touchUpInside)
+        
         // Add views to stack
         stackView.addArrangedSubview(resultLabel)
         stackView.addArrangedSubview(inputField1)
@@ -58,6 +62,7 @@ class ViewController: UIViewController {
         stackView.addArrangedSubview(addButton)
         stackView.addArrangedSubview(helloButton)
         stackView.addArrangedSubview(factorialButton)
+        stackView.addArrangedSubview(goroutinesButton)
         
         // Set constraints
         NSLayoutConstraint.activate([
@@ -96,5 +101,27 @@ class ViewController: UIViewController {
         
         let result = GoIOSBridge.calculateFactorial(n: num)
         resultLabel.text = "Factorial: \(result)"
+    }
+    
+    @objc private func goroutinesButtonTapped() {
+        // Get number of goroutines from first field or use default
+        let count = Int(inputField1.text ?? "10") ?? 10
+        // Get workload per goroutine from second field or use default
+        let workload = Int(inputField2.text ?? "1000") ?? 1000
+        
+        // Show testing message
+        resultLabel.text = "测试中...\n启动 \(count) 个协程, 每个负载 \(workload)"
+        
+        // Use background thread for potentially heavy operation
+        DispatchQueue.global(qos: .userInitiated).async {
+            let startTime = CFAbsoluteTimeGetCurrent()
+            let result = GoIOSBridge.testGoroutines(count: count, workload: workload)
+            let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
+            
+            // Update UI on main thread
+            DispatchQueue.main.async {
+                self.resultLabel.text = "协程测试结果: \(result)\n用时: \(String(format: "%.4f", timeElapsed))秒\n\(count)个协程成功运行!"
+            }
+        }
     }
 }

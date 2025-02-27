@@ -24,4 +24,8 @@ class GoIOSBridge {
     static func calculateFactorial(n: Int) -> Int {
         return Int(CalculateFactorial(Int32(n)))
     }
+    
+    static func testGoroutines(count: Int, workload: Int) -> Int {
+        return Int(TestGoroutines(Int32(count), Int32(workload)))
+    }
 }

@@ -52,5 +52,37 @@ func CalculateFactorial_GoIOS(n C.int) C.int {
 	return C.int(CalculateFactorial(int(n)))
 }
 
+// TestGoroutines runs multiple goroutines and aggregates their results
+func TestGoroutines(count int, workload int) int {
+	// Channel to collect results from goroutines
+	results := make(chan int, count)
+	
+	// Launch goroutines
+	for i := 0; i < count; i++ {
+		go func(id int) {
+			// Perform some CPU work
+			sum := 0
+			for j := 0; j < workload; j++ {
+				sum += j * id
+			}
+			// Send result back through channel
+			results <- sum
+		}(i + 1)
+	}
+	
+	// Collect and aggregate results
+	totalSum := 0
+	for i := 0; i < count; i++ {
+		totalSum += <-results
+	}
+	
+	return totalSum
+}
+
+//export TestGoroutines_GoIOS
+func TestGoroutines_GoIOS(count, workload C.int) C.int {
+	return C.int(TestGoroutines(int(count), int(workload)))
+}
+
 // Required but not used
 func main() {}

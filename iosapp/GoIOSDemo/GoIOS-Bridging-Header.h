@@ -18,6 +18,9 @@ char* Hello(const char* name);
 // CalculateFactorial calculates the factorial of a number
 int CalculateFactorial(int n);
 
+// TestGoroutines tests Go's goroutine functionality on iOS
+int TestGoroutines(int count, int workload);
+
 #ifdef __cplusplus
 }
 #endif
