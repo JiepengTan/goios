@@ -3,7 +3,7 @@ import Foundation
 class GoIOSBridge {
     
     static func addNumbers(a: Int, b: Int) -> Int {
-        return Simple(Int32(a), Int32(b))
+        return Int(Simple(Int32(a), Int32(b)))
     }
     
     static func sayHello(name: String) -> String {
@@ -22,6 +22,6 @@ class GoIOSBridge {
     }
     
     static func calculateFactorial(n: Int) -> Int {
-        return CalculateFactorial(Int32(n))
+        return Int(CalculateFactorial(Int32(n)))
     }
 }

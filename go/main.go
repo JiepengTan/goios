@@ -1,3 +1,8 @@
+// +build darwin
+// +build arm64 amd64
+// +build cgo
+// +build ios
+
 package main
 
 import "C"

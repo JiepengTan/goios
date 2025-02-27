@@ -24,32 +24,48 @@ cd "$GO_SRC_DIR"
 SIMULATOR_SDK_PATH=$(xcrun --sdk iphonesimulator --show-sdk-path)
 DEVICE_SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
 
+# Common CGO flags for exception handling
+# Add -trimpath to remove local paths from the binary
+# Add -ldflags=-w to disable DWARF generation
+# Add -ldflags=-s to disable symbol table
+GO_LDFLAGS="-w -s -extldflags=-Wl,-s"
+COMMON_CGO_FLAGS="-tags=ios -buildmode=c-archive -trimpath -ldflags=-w"
+
+# Disable signal handling in Go for iOS
+# asyncpreemptoff=1 disables async goroutine preemption which can trigger signals
+# cgocheck=0 disables cgo pointer checking which can trigger segfaults
+# panicnil=1 makes the program crash rather than panic on nil dereference
+export GODEBUG=cgocheck=0,asyncpreemptoff=1,panicnil=1
+
+# Fix for iOS Go 
+export CGO_CFLAGS_ALLOW="-fmodules|-fmodule-map-file=.*"
+
 # Build for iOS Simulator (x86_64)
 echo "🔨 Building for iOS Simulator (x86_64)..."
 CGO_ENABLED=1 \
 GOOS=darwin \
 GOARCH=amd64 \
-CGO_CFLAGS="-isysroot $SIMULATOR_SDK_PATH -mios-simulator-version-min=11.0 -arch x86_64" \
-CGO_LDFLAGS="-isysroot $SIMULATOR_SDK_PATH -mios-simulator-version-min=11.0 -arch x86_64" \
-go build -buildmode=c-archive -o "../$SIMULATOR_DIR/libgoios-x86_64.a" .
+CGO_CFLAGS="-isysroot $SIMULATOR_SDK_PATH -mios-simulator-version-min=12.0 -arch x86_64 -fembed-bitcode" \
+CGO_LDFLAGS="-isysroot $SIMULATOR_SDK_PATH -mios-simulator-version-min=12.0 -arch x86_64" \
+go build $COMMON_CGO_FLAGS -o "../$SIMULATOR_DIR/libgoios-x86_64.a" .
 
 # Build for iOS Simulator (arm64)
 echo "🔨 Building for iOS Simulator (arm64)..."
 CGO_ENABLED=1 \
 GOOS=darwin \
 GOARCH=arm64 \
-CGO_CFLAGS="-isysroot $SIMULATOR_SDK_PATH -mios-simulator-version-min=11.0 -arch arm64" \
-CGO_LDFLAGS="-isysroot $SIMULATOR_SDK_PATH -mios-simulator-version-min=11.0 -arch arm64" \
-go build -buildmode=c-archive -o "../$SIMULATOR_DIR/libgoios-arm64-sim.a" .
+CGO_CFLAGS="-isysroot $SIMULATOR_SDK_PATH -mios-simulator-version-min=12.0 -arch arm64 -fembed-bitcode" \
+CGO_LDFLAGS="-isysroot $SIMULATOR_SDK_PATH -mios-simulator-version-min=12.0 -arch arm64" \
+go build $COMMON_CGO_FLAGS -o "../$SIMULATOR_DIR/libgoios-arm64-sim.a" .
 
 # Build for iOS Device (arm64)
 echo "🔨 Building for iOS Device (arm64)..."
 CGO_ENABLED=1 \
 GOOS=darwin \
 GOARCH=arm64 \
-CGO_CFLAGS="-isysroot $DEVICE_SDK_PATH -mios-version-min=11.0 -arch arm64" \
-CGO_LDFLAGS="-isysroot $DEVICE_SDK_PATH -mios-version-min=11.0 -arch arm64" \
-go build -buildmode=c-archive -o "../$DEVICE_DIR/libgoios-arm64.a" .
+CGO_CFLAGS="-isysroot $DEVICE_SDK_PATH -mios-version-min=12.0 -arch arm64 -fembed-bitcode" \
+CGO_LDFLAGS="-isysroot $DEVICE_SDK_PATH -mios-version-min=12.0 -arch arm64" \
+go build $COMMON_CGO_FLAGS -o "../$DEVICE_DIR/libgoios-arm64.a" .
 
 cd ..
 
@@ -92,7 +108,7 @@ cat > "$SIMULATOR_DIR/$FRAMEWORK_NAME.framework/Info.plist" << EOF
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>MinimumOSVersion</key>
-	<string>11.0</string>
+	<string>12.0</string>
 </dict>
 </plist>
 EOF
@@ -119,28 +135,36 @@ cat > "$DEVICE_DIR/$FRAMEWORK_NAME.framework/Info.plist" << EOF
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>MinimumOSVersion</key>
-	<string>11.0</string>
+	<string>12.0</string>
 </dict>
 </plist>
 EOF
 
-# Add C bridge file
-echo "🌉 Adding C bridge file..."
-gcc -isysroot $SIMULATOR_SDK_PATH -mios-simulator-version-min=11.0 -arch x86_64 -c "$GO_SRC_DIR/goios_bridge.c" -o "$BUILD_DIR/goios_bridge_x86_64.o"
-gcc -isysroot $SIMULATOR_SDK_PATH -mios-simulator-version-min=11.0 -arch arm64 -c "$GO_SRC_DIR/goios_bridge.c" -o "$BUILD_DIR/goios_bridge_arm64_sim.o"
-gcc -isysroot $DEVICE_SDK_PATH -mios-version-min=11.0 -arch arm64 -c "$GO_SRC_DIR/goios_bridge.c" -o "$BUILD_DIR/goios_bridge_arm64.o"
+# Add C bridge files
+echo "🌉 Adding C bridge files..."
+# Compile darwin_stubs.c first
+gcc -isysroot $SIMULATOR_SDK_PATH -mios-simulator-version-min=12.0 -arch x86_64 -c "$GO_SRC_DIR/darwin_stubs.c" -o "$BUILD_DIR/darwin_stubs_x86_64.o"
+gcc -isysroot $SIMULATOR_SDK_PATH -mios-simulator-version-min=12.0 -arch arm64 -c "$GO_SRC_DIR/darwin_stubs.c" -o "$BUILD_DIR/darwin_stubs_arm64_sim.o"
+gcc -isysroot $DEVICE_SDK_PATH -mios-version-min=12.0 -arch arm64 -c "$GO_SRC_DIR/darwin_stubs.c" -o "$BUILD_DIR/darwin_stubs_arm64.o"
+
+# Then compile goios_bridge.c
+gcc -isysroot $SIMULATOR_SDK_PATH -mios-simulator-version-min=12.0 -arch x86_64 -c "$GO_SRC_DIR/goios_bridge.c" -o "$BUILD_DIR/goios_bridge_x86_64.o"
+gcc -isysroot $SIMULATOR_SDK_PATH -mios-simulator-version-min=12.0 -arch arm64 -c "$GO_SRC_DIR/goios_bridge.c" -o "$BUILD_DIR/goios_bridge_arm64_sim.o"
+gcc -isysroot $DEVICE_SDK_PATH -mios-version-min=12.0 -arch arm64 -c "$GO_SRC_DIR/goios_bridge.c" -o "$BUILD_DIR/goios_bridge_arm64.o"
 
 # Link libraries for x86_64 simulator
 echo "🔗 Linking libraries for x86_64 simulator..."
 libtool -static -arch_only x86_64 -o "$SIMULATOR_DIR/$FRAMEWORK_NAME.framework/GoIOS-x86_64" \
   "$SIMULATOR_DIR/libgoios-x86_64.a" \
-  "$BUILD_DIR/goios_bridge_x86_64.o"
+  "$BUILD_DIR/goios_bridge_x86_64.o" \
+  "$BUILD_DIR/darwin_stubs_x86_64.o"
 
 # Link libraries for arm64 simulator
 echo "🔗 Linking libraries for arm64 simulator..."
 libtool -static -arch_only arm64 -o "$SIMULATOR_DIR/$FRAMEWORK_NAME.framework/GoIOS-arm64" \
   "$SIMULATOR_DIR/libgoios-arm64-sim.a" \
-  "$BUILD_DIR/goios_bridge_arm64_sim.o"
+  "$BUILD_DIR/goios_bridge_arm64_sim.o" \
+  "$BUILD_DIR/darwin_stubs_arm64_sim.o"
 
 # Create fat binary for simulator
 echo "🔗 Creating fat binary for simulator..."
@@ -152,7 +176,8 @@ lipo -create -output "$SIMULATOR_DIR/$FRAMEWORK_NAME.framework/$FRAMEWORK_NAME" 
 echo "🔗 Linking libraries for arm64 device..."
 libtool -static -arch_only arm64 -o "$DEVICE_DIR/$FRAMEWORK_NAME.framework/$FRAMEWORK_NAME" \
   "$DEVICE_DIR/libgoios-arm64.a" \
-  "$BUILD_DIR/goios_bridge_arm64.o"
+  "$BUILD_DIR/goios_bridge_arm64.o" \
+  "$BUILD_DIR/darwin_stubs_arm64.o"
 
 # Create XCFramework
 echo "🎁 Creating XCFramework..."
@@ -161,6 +186,12 @@ xcrun xcodebuild -create-xcframework \
   -framework "$SIMULATOR_DIR/$FRAMEWORK_NAME.framework" \
   -framework "$DEVICE_DIR/$FRAMEWORK_NAME.framework" \
   -output "$XCFRAMEWORK_DIR"
+
+# Make a copy in the directory the project expects
+# Create symlink to the framework so Xcode can find it
+echo "🔄 Creating symbolic link to XCFramework..."
+mkdir -p "../output"
+ln -sf "$(pwd)/output/GoIOS.xcframework" "../output/GoIOS.xcframework"
 
 echo "✅ Successfully built $FRAMEWORK_NAME.xcframework!"
 echo "📍 Location: $XCFRAMEWORK_DIR"

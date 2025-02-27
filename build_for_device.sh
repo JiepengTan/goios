@@ -32,6 +32,19 @@ else
     exit 1
 fi
 
+# Verify the XCFramework was created in the expected location
+if [ ! -d "$XCFRAMEWORK_DIR" ]; then
+    echo -e "${RED}❌ XCFramework not found at $XCFRAMEWORK_DIR${NC}"
+    exit 1
+fi
+
+# Also verify if the symlink was created properly
+if [ ! -L "../output/GoIOS.xcframework" ] && [ ! -d "../output/GoIOS.xcframework" ]; then
+    echo -e "${YELLOW}⚠️ XCFramework symlink not found at expected location. Creating it now...${NC}"
+    mkdir -p "../output"
+    ln -sf "$(pwd)/output/GoIOS.xcframework" "../output/GoIOS.xcframework"
+fi
+
 # Step 2: Open Xcode Project
 echo -e "${BLUE}🚀 Step 2: Opening Xcode project...${NC}"
 open "$XCODE_PROJECT"
